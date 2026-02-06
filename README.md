@@ -15,7 +15,15 @@
 
 ## optional
 
-- change `USER CONSTS`
+change `USER CONSTS`:
+- `FORMAT`
+    - only tested mp4s, other formats might work as well
+- `FILE_SIZE_LIMIT`
+    - default to 50MB (some videos reach up to 1GB)
+    - most videos are under the limit
+    - may prevent being IP banned?
+- `FROM_PAGE`
+    - edit if you're having issues with some page
 
 # warning before running
 
