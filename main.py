@@ -22,9 +22,44 @@ EXTENSIONS = [
     ".avi",  # found
     ".amv",
     ".qt",
+    ".ogg",
+    ".drc",
+    ".viv",
+    ".f4v",
+    ".webm",
+    ".mkv",
+    ".ogv",
+    ".gifv",
+    ".rm",
+    ".rmvb",
+    ".asf",
+    ".mpg",
+    ".mpeg",
+    ".dat",
+    ".asf",
+    ".ogm",
+    ".ts",
+    ".m2ts",
+    ".divx",
     # audio
     ".mp3",  # found
     ".m4a",  # found
+    ".f4a",
+    ".m4p",
+    ".f4p",
+    ".aac",
+    ".aiff",
+    ".alac",
+    ".flac",
+    ".mp1",
+    ".mp2",
+    ".wav",  # found
+    ".wma",
+    ".raw",
+    ".opus",  # found
+    ".ra",
+    ".vox",
+    ".dss",
 ]
 DOWNLOAD_THREADS = 3
 
@@ -198,7 +233,7 @@ def download_file(file: File, ext: str, id) -> bool:
         return True
 
     if ext in file.progress.extensions:
-        print(f"{Y}[{id}] SKIP - {ext} already tried{X}")
+        # print(f"{Y}[{id}] SKIP - {ext} already tried{X}")
         return False
 
     file_name_new = file.name + ext
