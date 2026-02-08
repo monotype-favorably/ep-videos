@@ -20,20 +20,61 @@
 ## optional
 
 change `USER CONSTS`:
-- `FORMAT`
-    - only tested mp4s, other formats might work as well
+- `COOKIE`
+    - mandatory, mentioned above
+- `EXTENSIONS`
+    - default: [".mp4", ".m4v", ".m4a", ".mov"]
+    - add anything else to the list to try
+    - don't forget `.` before extension
 - `FILE_SIZE_LIMIT`
-    - default to 50MB (some videos reach up to 10GB)
+    - default: 200MB (some videos reach up to 10GB)
     - most videos are under the limit
-    - may prevent being IP banned / timed out
-- `FROM_PAGE`
-    - edit if you're having issues with some page
+    - may prevent being timed out
+- `DOWNLOAD_THREADS`
+    - default: 1
+    - too many and you will get timed out pretty quick
+    - preferably <5
+
+## python and pip
+
+install python
+
+install packages
+```
+pip install pydantic
+pip install functools
+```
+
+# database
+
+`db.json` contains everything I've tried/downloaded so far
+IMPORTANT: file should be deleted if you're running the code for the first time
+
+if you want to help me out, check out `db.json` and go through files that are:
+1. found but not downloaded
+```json
+{
+    "type": "real",
+    "extension": ...,
+    "downloaded": False
+}
+```
+and download them, since they are larger than my limit
+
+2. not found:
+```json
+{
+    "type": "attempts",
+    "extensions": [...]
+}
+```
+and try different extensions
 
 # warning before running
 
-YOU IP WILL PROBABLY GET BLACKLISTED\*
+YOU WILL PROBABLY GET RATE LIMITED (ACCESS DENIED)
 
-\*it seems to be only temporary, but good luck...
+you should be able to connect again after some time
 
 # run
 
