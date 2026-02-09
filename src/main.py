@@ -1,162 +1,14 @@
 import json
 import os
-from typing import Callable, List, Literal, Union
+from typing import Callable, List
 import requests
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
-from pydantic import BaseModel
 from requests.models import HTTPError
-import itertools
-import string
 
-# USER CONSTS (can be changed)
-COOKIE = "F1600A12F246AAE88B3F2EEB831AB3AB~000000000000000000000000000000~YAAQBk4SAikP9SGcAQAAzrRWQx4LLYQvRjGTc86VOK9y+L8DkMlre5P8ykd2HfktRiCfU1i4iyAIRuvEbfoDsQlAvUOa+FpGXvzOggGVxw+y6iNWIsz3d34L8vuSBCyTWkiOv8SzoDna1gUkXC8PZ4foiz+4H++9+Gh0h69GfFA925zvb7RksACTPQqVEfYzlPdXVrBY46dRCam86pN1nmNRk/WIe2KMSieUx1zm7LEuYaD02ZtIAG1PYtbUmVcd99vrTAVgPWtJu3IWaOkGRkv/d8Ni8/maIQtErpj0BX9R7qwUoV7h/pthJU+NXCA1b2g/ZnHljqw8QaOFXId38hlA47nFNRBqOpnD4ticX2nUMj4ylhtg+UnhPpM8B2ylbVzpXUvBjAXJfn1bYLmsDTQ3Pbq7Vohd1Mc3P1H6VJrc00fKSvBlqab1bAKCU46b/LWRccoXgUrjnBXJlpziHT85FbskLAiQhOIBxDHEnpByJHOtEm0yAZDW+ekqflQBH7v4"
-AUTH_1 = "A879935CDA7DD9EA9709330639827956DDE3CB176F9D15D762E2D9F5D95737F7"
-AUTH_2 = "FB0079B45F0C237358D0C81D33615F3E272D185542968441A624CAFA35CA93B6"
-FILE_SIZE_LIMIT = 200_000_000
-EXTENSIONS = [
-    ".mp4",
-    ".mov",
-    ".m4v",
-    ".vob",
-    ".wmv",
-    ".avi",
-    ".ts",
-    ".opus",
-    ".mp3",
-    ".m4a",
-    ".wav",
-    ".xlsx",
-    ".xls",
-    ".3gp",
-    ".amr",
-    # ".flv",
-    # ".amv",
-    # ".qt",
-    # ".ogg",
-    # ".drc",
-    # ".viv",
-    # ".f4v",
-    # ".webm",
-    # ".mkv",
-    # ".ogv",
-    # ".gifv",
-    # ".rm",
-    # ".rmvb",
-    # ".asf",
-    # ".mpg",
-    # ".mpeg",
-    # ".dat",
-    # ".asf",
-    # ".ogm",
-    # ".m2ts",
-    # ".divx",
-    # ".f4a",
-    # ".m4p",
-    # ".f4p",
-    # ".aac",
-    # ".aiff",
-    # ".alac",
-    # ".flac",
-    # ".mp1",
-    # ".mp2",
-    # ".wma",
-    # ".raw",
-    # ".ra",
-    # ".vox",
-    # ".dss",
-]
-FILE_THREADS = 1
-EXTENSION_THREADS = 10
-
-
-# SITE CONSTS (should probably not be changed)
-SITE_URL = "https://www.justice.gov/epstein"
-SEARCH_URL = "https://www.justice.gov/multimedia-search?"
-MAX_PAGES = 381  # might change in future?
-NORMAL_HEADERS = {
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Encoding": "gzip, deflate, br, zstd",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Alt-Used": "www.justice.gov",
-    "Connection": "keep-alive",
-    "Host": "www.justice.gov",
-    # "If-Modified-Since": "Fri, 06 Feb 2026 01:20:33 GMT",
-    # "If-None-Match": "\"1770340833-gzip\"",
-    "Priority": "u=0, i",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?!",
-    "TE": "trailers",
-    "Upgrade-Insecure-Requests": "1",
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0",
-}
-SEARCH_HEADERS = {
-    "Accept": "*/*",
-    "Accept-Encoding": "gzip, deflate, br, zstd",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Alt-Used": "www.justice.gov",
-    "Connection": "keep-alive",
-    "Host": "www.justice.gov",
-    "Priority": "u=0",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-origin",
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0",
-    "x-queueit-ajaxpageurl": "https%3A%2F%2Fwww.justice.gov%2Fepstein",
-}
-COOKIES = {
-    "ak_bmsc": COOKIE,
-    "justiceGovAgeVerified": "true",
-    # "authorization_1": AUTH_1,
-    # "authorization_2": AUTH_2,
-}
-
-R = "\033[31m"
-Y = "\033[33m"
-G = "\033[32m"
-X = "\033[0m"
-
-
-# database
-class RealFile(BaseModel):
-    type: Literal["real"] = "real"
-    extension: str
-    size: int
-    downloaded: bool = False
-
-
-class Attempts(BaseModel):
-    type: Literal["attempts"] = "attempts"
-    extensions: List[str] = []
-
-
-Progress = Union[RealFile, Attempts]
-
-
-class File(BaseModel):
-    dataset: str
-    name: str
-    url: str
-    progress: Progress
-
-
-def save_db(files: list[File]):
-    db_path = Path("db.json")
-
-    with open(db_path, "w", encoding="utf-8") as f:
-        json.dump([f.model_dump() for f in files], f, indent=2)
-
-
-def load_db():
-    db_path = Path("db.json")
-
-    with open(db_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    return [File.model_validate(item) for item in data]
+from src.consts import *
+from src.db import *
 
 
 # search
@@ -337,17 +189,6 @@ def download_or_find_file(file: File, id: int, fn: Fn, ext: str) -> bool:
         return False
 
 
-def generate_extensions(max_length=3):
-    charset = string.ascii_lowercase + string.digits
-
-    for length in range(1, max_length + 1):
-        for combo in itertools.product(charset, repeat=length):
-            yield "." + "".join(combo)
-
-
-all_extensions = list(generate_extensions(3))
-
-
 def uncover_file(fn: Fn, id: int, file: File):
     # print(f"[{id}] Processing {file.dataset}/{file.name}")
 
@@ -357,8 +198,7 @@ def uncover_file(fn: Fn, id: int, file: File):
 
     with ThreadPoolExecutor(max_workers=EXTENSION_THREADS) as pool:
         futures = [
-            pool.submit(partial_download_or_find_file, ext=ext)
-            for ext in all_extensions
+            pool.submit(partial_download_or_find_file, ext=ext) for ext in EXTENSIONS
         ]
 
         for future in as_completed(futures):
@@ -400,28 +240,19 @@ def reset_attempts(files: List[File]):
     return files
 
 
-def get_cookies():
-    session = requests.session()
-
-    resp = session.get(SITE_URL)
-
-    cookies = session.cookies.get_dict()
-
-    print(json.dumps(cookies, indent=4))
-
-
 def main():
     # search("no images produced")
     # db = parse_search_results()
     # save_db(db)
-    db = load_db()
+    # db = load_db()
     # db = reset_attempts(db)
-    try:
-        db = uncover(db, False)
-    except:
-        print("STOPPING AND SAVING DB")
-
-    save_db(db)
+    # try:
+    #     db = uncover(db, False)
+    # except:
+    #     print("STOPPING AND SAVING DB")
+    #
+    # save_db(db)
+    pass
 
 
 if __name__ == "__main__":
