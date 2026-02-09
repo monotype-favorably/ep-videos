@@ -1,67 +1,74 @@
 import json
 import os
-from typing import List, Literal, Union
+from typing import Callable, List, Literal, Union
 import requests
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pydantic import BaseModel
 from requests.models import HTTPError
+import itertools
+import string
 
 # USER CONSTS (can be changed)
-COOKIE = "97060C7AC9A182EB50C06CB72D0F5154~000000000000000000000000000000~YAAQSBczF5MhxiWcAQAATt7WMh7lBl6GjtwzyTfq3imRkydO1zzQqGde8fY3lhz/yIyZNHx7nYlSAMUOORh3LI+SaYLXVHbJ55yuUNOmucHJ14KMwaSosb1+jhKVUtdD8V81W8DrmFsUoR2y6OhcSMhbwpMxuNQL2RJ5MbTcZGKInswb1WBEYJHRGUdNWCbb0/OjZOV4OJXvL8TnpdnavXwNeWvc4zaFoO09WoYy5u1Q5wnRu7o82AdjIQZGIG8wy0rBlYVA4uvK4NlsIMuFwFuILINJB1d4QoMFHG7y6KSbR/eiAtyh6XdzbISgc+20utzp2Int5BczTQKpDsL1KSpgOpWoxbzIJZbepM1Z8+GwTAlRQQZKeTsAzUiiOk8OysWaY/A4hZrVvdVnqAGNzCuUVcpZQ/2PHfTr0r+m86wEDDx02K/Q1tC6Oq4gw9maWDu94/EP0yxlm7cVKfSl3i22NR/nFi0="
+COOKIE = "F1600A12F246AAE88B3F2EEB831AB3AB~000000000000000000000000000000~YAAQBk4SAikP9SGcAQAAzrRWQx4LLYQvRjGTc86VOK9y+L8DkMlre5P8ykd2HfktRiCfU1i4iyAIRuvEbfoDsQlAvUOa+FpGXvzOggGVxw+y6iNWIsz3d34L8vuSBCyTWkiOv8SzoDna1gUkXC8PZ4foiz+4H++9+Gh0h69GfFA925zvb7RksACTPQqVEfYzlPdXVrBY46dRCam86pN1nmNRk/WIe2KMSieUx1zm7LEuYaD02ZtIAG1PYtbUmVcd99vrTAVgPWtJu3IWaOkGRkv/d8Ni8/maIQtErpj0BX9R7qwUoV7h/pthJU+NXCA1b2g/ZnHljqw8QaOFXId38hlA47nFNRBqOpnD4ticX2nUMj4ylhtg+UnhPpM8B2ylbVzpXUvBjAXJfn1bYLmsDTQ3Pbq7Vohd1Mc3P1H6VJrc00fKSvBlqab1bAKCU46b/LWRccoXgUrjnBXJlpziHT85FbskLAiQhOIBxDHEnpByJHOtEm0yAZDW+ekqflQBH7v4"
+AUTH_1 = "A879935CDA7DD9EA9709330639827956DDE3CB176F9D15D762E2D9F5D95737F7"
+AUTH_2 = "FB0079B45F0C237358D0C81D33615F3E272D185542968441A624CAFA35CA93B6"
 FILE_SIZE_LIMIT = 200_000_000
 EXTENSIONS = [
-    # video
-    ".mp4",  # found
-    ".mov",  # found
-    ".m4v",  # found
-    ".flv",
-    ".vob",  # found
-    ".wmv",  # found
-    ".avi",  # found
-    ".amv",
-    ".qt",
-    ".ogg",
-    ".drc",
-    ".viv",
-    ".f4v",
-    ".webm",
-    ".mkv",
-    ".ogv",
-    ".gifv",
-    ".rm",
-    ".rmvb",
-    ".asf",
-    ".mpg",
-    ".mpeg",
-    ".dat",
-    ".asf",
-    ".ogm",
+    ".mp4",
+    ".mov",
+    ".m4v",
+    ".vob",
+    ".wmv",
+    ".avi",
     ".ts",
-    ".m2ts",
-    ".divx",
-    # audio
-    ".mp3",  # found
-    ".m4a",  # found
-    ".f4a",
-    ".m4p",
-    ".f4p",
-    ".aac",
-    ".aiff",
-    ".alac",
-    ".flac",
-    ".mp1",
-    ".mp2",
-    ".wav",  # found
-    ".wma",
-    ".raw",
-    ".opus",  # found
-    ".ra",
-    ".vox",
-    ".dss",
+    ".opus",
+    ".mp3",
+    ".m4a",
+    ".wav",
+    ".xlsx",
+    ".xls",
+    ".3gp",
+    ".amr",
+    # ".flv",
+    # ".amv",
+    # ".qt",
+    # ".ogg",
+    # ".drc",
+    # ".viv",
+    # ".f4v",
+    # ".webm",
+    # ".mkv",
+    # ".ogv",
+    # ".gifv",
+    # ".rm",
+    # ".rmvb",
+    # ".asf",
+    # ".mpg",
+    # ".mpeg",
+    # ".dat",
+    # ".asf",
+    # ".ogm",
+    # ".m2ts",
+    # ".divx",
+    # ".f4a",
+    # ".m4p",
+    # ".f4p",
+    # ".aac",
+    # ".aiff",
+    # ".alac",
+    # ".flac",
+    # ".mp1",
+    # ".mp2",
+    # ".wma",
+    # ".raw",
+    # ".ra",
+    # ".vox",
+    # ".dss",
 ]
-DOWNLOAD_THREADS = 3
+FILE_THREADS = 1
+EXTENSION_THREADS = 10
 
 
 # SITE CONSTS (should probably not be changed)
@@ -100,7 +107,12 @@ SEARCH_HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0",
     "x-queueit-ajaxpageurl": "https%3A%2F%2Fwww.justice.gov%2Fepstein",
 }
-COOKIES = {"ak_bmsc": COOKIE, "justiceGovAgeVerified": "true"}
+COOKIES = {
+    "ak_bmsc": COOKIE,
+    "justiceGovAgeVerified": "true",
+    # "authorization_1": AUTH_1,
+    # "authorization_2": AUTH_2,
+}
 
 R = "\033[31m"
 Y = "\033[33m"
@@ -225,65 +237,97 @@ def parse_search_results():
     return files
 
 
-# attempt file download
-def download_file(file: File, ext: str, id) -> bool:
+# file find/download
+Fn = Callable[[int, File, str], bool]
+
+
+def find_file(id: int, file: File, ext: str):
+    uri = file.url.removesuffix(".pdf") + ext
+
+    with requests.head(
+        url=uri, headers=NORMAL_HEADERS, cookies=COOKIES, timeout=(3, 10)
+    ) as resp:
+        if resp.status_code == 404:
+            if isinstance(file.progress, Attempts):
+                file.progress.extensions.append(ext)
+            print(f"{R}[{id}] NOK - {ext} not found{X}")
+            return False
+
+        resp.raise_for_status()
+
+        total_size = int(resp.headers.get("Content-Length", 0))
+        file.progress = RealFile(extension=ext, size=total_size)
+
+        print(f"{G}[{id}] OK - found with ext: {ext}, size:{total_size:,}{X}")
+
+    return True
+
+
+def download_file(id: int, file: File, ext: str):
+    file_name_new = file.name + ext
+    download_path = Path(f"./videos/{file.dataset}/{file_name_new}")
+
+    if download_path.exists():
+        file_size = download_path.stat().st_size
+        file.progress = RealFile(extension=ext, size=file_size, downloaded=True)
+        print(f"{Y}[{id}] SKIP - file downloaded{X}")
+        return True
+
+    print(f"[{id}] Trying to find {ext} and download")
+
+    uri = file.url.removesuffix(".pdf") + ext
+
+    with requests.get(
+        url=uri,
+        headers=NORMAL_HEADERS,
+        cookies=COOKIES,
+        stream=True,
+        timeout=(3, 10),
+    ) as video:
+        if video.status_code == 404:
+            if isinstance(file.progress, Attempts):
+                file.progress.extensions.append(ext)
+            print(f"{R}[{id}] NOK - {ext} not found{X}")
+            return False
+
+        video.raise_for_status()
+
+        total_size = int(video.headers.get("Content-Length", 0))
+        file.progress = RealFile(extension=ext, size=total_size)
+
+        if total_size > FILE_SIZE_LIMIT:
+            print(f"{Y}[{id}] SKIP - too large: {total_size:,}B{X}")
+            return True
+
+        download_path.parent.mkdir(parents=True, exist_ok=True)
+
+        print(f"{G}[{id}] Downloading... {file_name_new} (size:{total_size}){X}")
+        with open(download_path, "wb") as vf:
+            for chunk in video.iter_content(1024 * 1024):
+                if not chunk:
+                    continue
+
+                vf.write(chunk)
+
+        file.progress.downloaded = True
+
+        print(f"{G}[{id}] OK - dowloaded with ext: {ext}, size:{total_size:,}{X}")
+
+    return True
+
+
+def download_or_find_file(file: File, id: int, fn: Fn, ext: str) -> bool:
     if isinstance(file.progress, RealFile):
         file_extension = file.progress.extension
-        print(f"{Y}[{id}] SKIP - {file_extension} already found{X}")
+        # print(f"{Y}[{id}] SKIP - {file_extension} already found{X}")
         return True
 
     if ext in file.progress.extensions:
         # print(f"{Y}[{id}] SKIP - {ext} already tried{X}")
         return False
 
-    file_name_new = file.name + ext
-    file_path = Path(f"./videos/{file.dataset}/{file_name_new}")
-
-    if file_path.exists():
-        file_size = file_path.stat().st_size
-        file.progress = RealFile(extension=ext, size=file_size, downloaded=True)
-        print(f"{Y}[{id}] SKIP - file downloaded{X}")
-        return True
-
-    print(f"[{id}] Trying {ext}")
-
-    file_uri_new = file.url.removesuffix(".pdf") + ext
     try:
-        with requests.get(
-            url=file_uri_new,
-            headers=NORMAL_HEADERS,
-            cookies=COOKIES,
-            stream=True,
-            timeout=(3, 10),
-        ) as video:
-            if video.status_code == 404:
-                file.progress.extensions.append(ext)
-                print(f"{R}[{id}] NOK - {ext} not found{X}")
-                return False
-
-            video.raise_for_status()
-
-            total_size = int(video.headers.get("Content-Length", 0))
-            file.progress = RealFile(extension=ext, size=total_size)
-
-            if total_size > FILE_SIZE_LIMIT:
-                print(f"{Y}[{id}] SKIP - too large: {total_size:,}B{X}")
-                return True
-
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-
-            print(f"{G}[{id}] Downloading... {file_name_new} (size:{total_size}){X}")
-            with open(file_path, "wb") as vf:
-                for chunk in video.iter_content(1024 * 1024):
-                    if not chunk:
-                        continue
-
-                    vf.write(chunk)
-
-            file.progress.downloaded = True
-
-            print(f"{G}[{id}] OK - dowloaded with ext: {ext}, size:{total_size:,}{X}")
-            return True
+        return fn(id, file, ext)
     except HTTPError as e:
         if e.response.status_code == 403:
             print(f"{R}ACCESS DENIED - stopping{X}")
@@ -293,22 +337,52 @@ def download_file(file: File, ext: str, id) -> bool:
         return False
 
 
-def uncover_file(id: int, file: File):
-    print(f"[{id}] Processing {file.dataset}/{file.name}")
+def generate_extensions(max_length=3):
+    charset = string.ascii_lowercase + string.digits
 
-    for ext in EXTENSIONS:
-        found = download_file(file, ext, id)
-        if found:
-            return id
+    for length in range(1, max_length + 1):
+        for combo in itertools.product(charset, repeat=length):
+            yield "." + "".join(combo)
+
+
+all_extensions = list(generate_extensions(3))
+
+
+def uncover_file(fn: Fn, id: int, file: File):
+    # print(f"[{id}] Processing {file.dataset}/{file.name}")
+
+    partial_download_or_find_file = partial(
+        download_or_find_file, file=file, id=id, fn=fn
+    )
+
+    with ThreadPoolExecutor(max_workers=EXTENSION_THREADS) as pool:
+        futures = [
+            pool.submit(partial_download_or_find_file, ext=ext)
+            for ext in all_extensions
+        ]
+
+        for future in as_completed(futures):
+            found = future.result()
+            if found:
+                return id
 
     print(f"{R}[{id}] NOTHING FOUND{X}")
 
     return id
 
 
-def uncover(files: List[File]):
-    with ThreadPoolExecutor(max_workers=DOWNLOAD_THREADS) as pool:
-        futures = [pool.submit(uncover_file, id, file) for id, file in enumerate(files)]
+def uncover(files: List[File], download: bool):
+    if download:
+        fn = download_file
+    else:
+        fn = find_file
+
+    uncover_file_with_fn = partial(uncover_file, fn)
+
+    with ThreadPoolExecutor(max_workers=FILE_THREADS) as pool:
+        futures = [
+            pool.submit(uncover_file_with_fn, id, file) for id, file in enumerate(files)
+        ]
 
         for future in as_completed(futures):
             _ = future.result()
@@ -326,6 +400,16 @@ def reset_attempts(files: List[File]):
     return files
 
 
+def get_cookies():
+    session = requests.session()
+
+    resp = session.get(SITE_URL)
+
+    cookies = session.cookies.get_dict()
+
+    print(json.dumps(cookies, indent=4))
+
+
 def main():
     # search("no images produced")
     # db = parse_search_results()
@@ -333,7 +417,7 @@ def main():
     db = load_db()
     # db = reset_attempts(db)
     try:
-        db = uncover(db)
+        db = uncover(db, False)
     except:
         print("STOPPING AND SAVING DB")
 
