@@ -1,24 +1,63 @@
 # USER CONSTS (can be changed)
-COOKIE = "501CC0448552275008680E21D632D131~000000000000000000000000000000~YAAQzbMUAhc0gx6cAQAABsP3Qx4LRILvuIPgTki4apFLP9rU0KMgB4LQVRydbxnYXxTjbH/1OjG31sNO6bhrtUN1CeR98UH7TNAMsytsWms4VRVNzR2g3tKqgoEaXN/YZWb7nXXUad6nBU328wkFuNQ2bBSgz8ZgkYVTycxDrbFewFm0AO5tBKED7uESgfxHw33Zt2bXqSyrGL7mYbJeQ6qS5TIvzK+WUOxfijbpisFNXcdpKl5OZt5PsD/+KOPL/SnOO1SE6QgTuO6BIxoEcXRGhDauHn0BXkvCOxjc+tYMdobLMbT11+TZxAaXIysrpelXi8l+GnDzQ8W+DnoROnzTXG3O4fwomCOA+Opbv+P0ZMRup/16IWtawO3t42OrlCI73b3yHufZ+DfCjgJauQYEQZVePDkqslTMysW8vNbjRQG/Y0uKOPA+3oMFPljwZF/AOY8FrkOu/4pS3oC1UT2p1GLIvhg="
+COOKIE = "AA45B841AFEC8269D8DDA9AF64AF75AE~000000000000000000000000000000~YAAQzbMUAsgFwR6cAQAAr6tMRB4LY2A9iwSTNaEzTiDcxRC1s9AfUv3mlL8XaOkBbw1dpd9c/XE0XF7MJyQXPCmG6xsy0GdtpobQ03hFHNtdiMo9UXMMKxYsOgrEy7FYhIjAypz1ZRrNlgNKTeiJHxjVB+LvqQ/fJIJ8t3St1sPNcXLgISNB/2zG5/bSFaBdZcrAEkgDbo0T6JBzte0kg7jNh6gc87P0pklOvUzRYDF6bnB8K2Q6igFWVW8fDBtg4SUaocLW/D25ezLUyV6ao+DqD+Xn76KfsJd405SuKWjvO1sk/ugi3ucQiiL+d6i/njX62jasyt5e0AjZXiJWjYI7aTJHyKopRFrnwz0KJlKYTAQwIbDSS2RF2LZcrl3Yt4MMHVfQVBD+5c6fFyP6z/VVcafcu/dB2YQ0jHhwe4VqeJEj4ux7xTx0WeVInOTFz3oFJiCO43JkCIJ3kkuOibX9c9T+"
 AUTH_1 = "A879935CDA7DD9EA9709330639827956DDE3CB176F9D15D762E2D9F5D95737F7"
 AUTH_2 = "FB0079B45F0C237358D0C81D33615F3E272D185542968441A624CAFA35CA93B6"
 FILE_SIZE_LIMIT = 200_000_000
 EXTENSIONS = [
+    # FOUND
+    ".avi",
     ".mp4",
     ".mov",
-    ".m4v",
-    ".vob",
-    ".wmv",
-    ".avi",
-    ".ts",
-    ".opus",
-    ".mp3",
     ".m4a",
+    ".m4v",
     ".wav",
+    ".docx",
     ".xlsx",
+    ".mp3",
+    ".vob",
+    ".opus",
     ".xls",
-    ".3gp",
     ".amr",
+    ".doc",
+    ".wmv",
+    ".csv",
+    ".3gp",
+    ".ts",
+    ".db",
+    # TRYING
+    ".m3u",
+    ".mid",
+    ".mpp",
+    ".key",
+    ".aae",
+    # ".plugin",
+    # ".img",
+    # ".iso",
+    # ".bak",
+    # ".torrent",
+    # ".numbers",
+    # ".pub",
+    # ".asf",
+    # ".html",
+    # ".json",
+    # ".css",
+    # ".js",
+    # ".app",
+    # ".bin",
+    # ".bat",
+    # ".jar",
+    # ".exe",
+    # ".cmd",
+    # ".txt",
+    # ".ppt",
+    # ".pptx",
+    # ".log",
+    # ".zip",
+    # ".tar",
+    # ".xml",
+    # ".swf",
+    # ".xlr",
+    # ".ods",
     # ".flv",
     # ".amv",
     # ".qt",
@@ -55,7 +94,7 @@ EXTENSIONS = [
     # ".vox",
     # ".dss",
 ]
-FILE_THREADS = 1
+FILE_THREADS = 3
 EXTENSION_THREADS = 10
 
 

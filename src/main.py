@@ -196,15 +196,20 @@ def uncover_file(fn: Fn, id: int, file: File):
         download_or_find_file, file=file, id=id, fn=fn
     )
 
-    with ThreadPoolExecutor(max_workers=EXTENSION_THREADS) as pool:
-        futures = [
-            pool.submit(partial_download_or_find_file, ext=ext) for ext in EXTENSIONS
-        ]
+    # with ThreadPoolExecutor(max_workers=EXTENSION_THREADS) as pool:
+    #     futures = [
+    #         pool.submit(partial_download_or_find_file, ext=ext) for ext in EXTENSIONS
+    #     ]
+    #
+    #     for future in as_completed(futures):
+    #         found = future.result()
+    #         if found:
+    #             return id
 
-        for future in as_completed(futures):
-            found = future.result()
-            if found:
-                return id
+    for ext in EXTENSIONS:
+        found = download_or_find_file(file, id, fn, ext)
+        if found:
+            return id
 
     print(f"{R}[{id}] NOTHING FOUND{X}")
 
@@ -224,8 +229,13 @@ def uncover(files: List[File], download: bool):
             pool.submit(uncover_file_with_fn, id, file) for id, file in enumerate(files)
         ]
 
-        for future in as_completed(futures):
-            _ = future.result()
+        try:
+            for future in as_completed(futures):
+                _ = future.result()
+                save_db(files)
+        except:
+            print("STOPPING POOL")
+            pool.shutdown()
             save_db(files)
 
     return files
@@ -244,14 +254,14 @@ def main():
     # search("no images produced")
     # db = parse_search_results()
     # save_db(db)
-    # db = load_db()
+    db = load_db()
     # db = reset_attempts(db)
-    # try:
-    #     db = uncover(db, False)
-    # except:
-    #     print("STOPPING AND SAVING DB")
-    #
-    # save_db(db)
+    try:
+        db = uncover(db, False)
+    except:
+        print("STOPPING AND SAVING DB")
+
+    save_db(db)
     pass
 
 

@@ -1,25 +1,42 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 import itertools
-import json
 import string
 
 import requests
 
 from src.consts import *
 
-URL = "https://www.justice.gov/epstein/files/DataSet 8/EFTA00016339"
+URL = "https://www.justice.gov/epstein/files/DataSet 9/EFTA00899090"
 
 
 def generate_extensions(max_length=3):
     charset = string.ascii_lowercase + string.digits
 
-    for length in range(1, max_length + 1):
+    start = False
+    for length in range(3, max_length + 1):
         for combo in itertools.product(charset, repeat=length):
-            yield "." + "".join(combo)
+            extension = "." + "".join(combo)
+            if start:
+                yield extension
+            elif extension == ".e1a":
+                start = True
 
 
-all_extensions = list(generate_extensions(3))
+GEN_EXTENSIONS = list(generate_extensions(3))
+
+COMMON_EXTENSIONS = [
+    ".doc",
+    ".txt",
+    ".docx",
+    ".ppt",
+    ".pptx",
+    ".log",
+    ".zip",
+    ".tar",
+    ".xml",
+    ".swf",
+]
 
 
 def try_extension(url: str, ext: str):
@@ -28,9 +45,6 @@ def try_extension(url: str, ext: str):
     with requests.head(
         url=url, headers=NORMAL_HEADERS, cookies=COOKIES, timeout=(3, 10)
     ) as resp:
-        print(resp.request.url)
-        print(resp.status_code)
-        print(json.dumps(dict(resp.headers), indent=4))
         if resp.status_code == 404:
             if resp.headers["server"] == "AkamaiNetStorage":
                 print(f"{R}NOK - {ext} not found{X}")
@@ -54,15 +68,20 @@ def try_all_extensions(url: str):
 
     partial_try_extension = partial(try_extension, url=url)
 
-    with ThreadPoolExecutor(max_workers=1) as pool:
+    with ThreadPoolExecutor(max_workers=3) as pool:
         futures = [
-            pool.submit(partial_try_extension, ext=ext) for ext in all_extensions
+            pool.submit(partial_try_extension, ext=ext) for ext in GEN_EXTENSIONS
         ]
 
-        for future in as_completed(futures):
-            found = future.result()
-            if found:
-                return id
+        try:
+            for future in as_completed(futures):
+                found = future.result()
+                if found:
+                    pool.shutdown(wait=False, cancel_futures=True)
+                    return id
+        except Exception as e:
+            print(f"huh? {e}")
+            pool.shutdown(wait=False, cancel_futures=True)
 
     print(f"{R}NOTHING FOUND{X}")
 
